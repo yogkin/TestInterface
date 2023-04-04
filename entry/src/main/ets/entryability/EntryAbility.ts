@@ -2,10 +2,29 @@ import window from '@ohos.window';
 import Configuration from '@ohos.app.ability.Configuration';
 import UIAbility from '@ohos.app.ability.UIAbility';
 import hilog from '@ohos.hilog';
-
+import emitter from "@ohos.events.emitter";
 
 let windowStage_:window.WindowStage = null;
-let sub_windowClass = null;
+let sub_windowClass:window.Window = null;
+
+// 定义一个eventId为1的事件
+export let moveEvent = {
+    eventId: 1
+};
+
+// 收到eventId为1的事件后执行该回调
+let callback = (eventData) => {
+    console.info('event callback'+JSON.stringify(eventData));
+    // 2.子窗口创建成功后，设置子窗口的位置、大小及相关属性等。
+    // @ts-ignore
+    sub_windowClass?.moveWindowTo(vp2px(eventData.data.x)-50, vp2px(eventData.data.y)+50, (err) => {
+        if (err.code) {
+            console.error('Failed to move the window. Cause:' + JSON.stringify(err));
+            return;
+        }
+        console.info('Succeeded in moving the window.');
+    });
+};
 
 export default class EntryAbility extends UIAbility {
 
@@ -38,13 +57,13 @@ export default class EntryAbility extends UIAbility {
             sub_windowClass = data;
             console.info('Succeeded in creating the subwindow. Data: ' + JSON.stringify(data));
             // 2.子窗口创建成功后，设置子窗口的位置、大小及相关属性等。
-            sub_windowClass.moveWindowTo(300, 300, (err) => {
-                if (err.code) {
-                    console.error('Failed to move the window. Cause:' + JSON.stringify(err));
-                    return;
-                }
-                console.info('Succeeded in moving the window.');
-            });
+//            sub_windowClass.moveWindowTo(300, 300, (err) => {
+//                if (err.code) {
+//                    console.error('Failed to move the window. Cause:' + JSON.stringify(err));
+//                    return;
+//                }
+//                console.info('Succeeded in moving the window.');
+//            });
             sub_windowClass.resize(100,100, (err) => {
                 if (err.code) {
                     console.error('Failed to change the window size. Cause:' + JSON.stringify(err));
@@ -68,6 +87,7 @@ export default class EntryAbility extends UIAbility {
                     console.info('Succeeded in showing the window.');
                 });
             });
+            sub_windowClass.setWindowTouchable(false)
         })
     }
 
@@ -86,6 +106,8 @@ export default class EntryAbility extends UIAbility {
         windowStage_ = windowStage;
         // 开发者可以在适当的时机，如主窗口上按钮点击事件等，创建子窗口。并不一定需要在onWindowStageCreate调用，这里仅作展示
         this.showSubWindow();
+        // 订阅eventId为1的事件
+        emitter.on(moveEvent, callback);
         windowStage.loadContent('pages/Index', (err, data) => {
             if (err.code) {
                 hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
